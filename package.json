@@ -4,9 +4,7 @@
   "description": "Inform Repair System",
   "main": "index.js",
   "scripts": {
-    "migrate:db": "node migrate/db.js",
-    "migrate:table": "node migrate/table.js",
-    "drop:db": "node migrate/drop_db.js",
+    "migrate": "node migrate/db.js",
     "start": "node server.js",
     "test": "test"
   },
