@@ -1,0 +1,27 @@
+{
+  "name": "irs",
+  "version": "1.0.0",
+  "description": "Inform Repair System",
+  "main": "index.js",
+  "scripts": {
+    "migrate:db": "node migrate/db.js",
+    "migrate:table": "node migrate/table.js",
+    "drop:db": "node migrate/drop_db.js",
+    "start": "node server.js",
+    "test": "test"
+  },
+  "keywords": [
+    "irs"
+  ],
+  "author": "Tanawat_DEVz",
+  "license": "ISC",
+  "dependencies": {
+    "body-parser": "^1.18.3",
+    "express": "^4.16.4",
+    "mysql": "^2.16.0"
+  },
+  "devDependencies": {
+    "gulp-imagemin": "^5.0.3",
+    "gulp-newer": "^1.4.0"
+  }
+}
