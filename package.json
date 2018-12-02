@@ -1,6 +1,6 @@
 {
   "name": "irs",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "description": "Inform Repair System",
   "main": "index.js",
   "scripts": {
@@ -17,9 +17,5 @@
     "body-parser": "^1.18.3",
     "express": "^4.16.4",
     "mysql": "^2.16.0"
-  },
-  "devDependencies": {
-    "gulp-imagemin": "^5.0.3",
-    "gulp-newer": "^1.4.0"
   }
 }

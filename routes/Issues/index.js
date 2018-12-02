@@ -1,9 +1,19 @@
-const table = 'sub_departments';
+const table = 'issues';
 module.exports = (app, connect_db) => {
   app.get(`/${table}`, (req, res) => {
-    connect_db.query(`SELECT * FROM ir_${table}`, (err, rows) => {
+    const limit = req.query.take != 'null' ? `LIMIT ${req.query.take}` : '';
+    const offset = req.query.skip != 'null' ? `OFFSET ${req.query.skip}` : '';
+    const sql = `SELECT * FROM ir_${table} ${limit} ${offset}`;
+    connect_db.query(sql, (err, rows) => {
       if (err) throw err;
-      res.json(rows)
+      if (limit && limit != '') {
+        connect_db.query(`SELECT * FROM ir_${table}`, (err, rowsLength) => {
+          if (err) throw err;
+          res.json({ data: rows, total: rowsLength.length });
+        });
+      } else {
+        res.json(rows);
+      }
     });
   });
 
@@ -15,22 +25,14 @@ module.exports = (app, connect_db) => {
   })
 
   app.post(`/${table}`, (req, res) => {
-    connect_db.query(`INSERT INTO ir_${table} (departments_id, name) VALUES ('${req.body.departments_id}', '${req.body.name}')`, (err, rows) => {
+    connect_db.query(`INSERT INTO ir_${table} (name) VALUES ('${req.body.name}')`, (err, rows) => {
       if (err) throw err;
       res.json('Insert Data Success!')
     });
   })
 
   app.put(`/${table}/:id`, (req, res) => {
-    let departments_id = '';
-    let name = '';
-    if (req.body.departments_id != '' && req.body.departments_id) {
-      departments_id = req.body.departments_id;
-    }
-    if (req.body.name != '' && req.body.name) {
-      name = req.body.name;
-    }
-    connect_db.query(`UPDATE ir_${table} SET ${departments_id} ${name} WHERE id = ${req.params.id}`, (err, rows) => {
+    connect_db.query(`UPDATE ir_${table} SET name = '${req.body.name}' WHERE id = ${req.params.id}`, (err, rows) => {
       if (err) throw err;
       res.json(`Update Data ID ${req.params.id} Success!`)
     });

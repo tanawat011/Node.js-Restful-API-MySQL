@@ -1,4 +1,4 @@
-const table = 'accessories';
+const table = 'status';
 module.exports = (app, connect_db) => {
   app.get(`/${table}`, (req, res) => {
     const limit = req.query.take != 'null' ? `LIMIT ${req.query.take}` : '';
@@ -26,7 +26,7 @@ module.exports = (app, connect_db) => {
   })
 
   app.post(`/${table}`, (req, res) => {
-    const sql = `INSERT INTO ir_${table} (name) VALUES ('${req.body.name}')`;
+    const sql = `INSERT INTO ir_${table} (name, color) VALUES ('${req.body.name}', '${req.body.color}')`;
     connect_db.query(sql, (err, rows) => {
       if (err) throw err;
       res.json('Insert Data Success!')
@@ -34,7 +34,7 @@ module.exports = (app, connect_db) => {
   })
 
   app.put(`/${table}/:id`, (req, res) => {
-    const sql = `UPDATE ir_${table} SET name = '${req.body.name}' WHERE id = ${req.params.id}`;
+    const sql = `UPDATE ir_${table} SET name = '${req.body.name}', color = '${req.body.color}' WHERE id = ${req.params.id}`;
     connect_db.query(sql, (err, rows) => {
       if (err) throw err;
       res.json(`Update Data ID ${req.params.id} Success!`)

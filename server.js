@@ -26,18 +26,13 @@ app.use(function (req, res, next) {
 app.use(bodyParser.json())
 app.use(bodyParser.urlencoded({ extended: true }))
 
-app.get('/', (req, res) => {
-  res.send('Hello World')
-})
-
 // Routes
 require('./routes/Accessories/index.js')(app, connect_db);
-require('./routes/Departments/index.js')(app, connect_db);
-require('./routes/SubDepartments/index.js')(app, connect_db);
-require('./routes/Employee/index.js')(app, connect_db);
-require('./routes/Inform/index.js')(app, connect_db);
-require('./routes/Issue/index.js')(app, connect_db);
-require('./routes/User/index.js')(app, connect_db);
+require('./routes/Informs/index.js')(app, connect_db);
+require('./routes/Issues/index.js')(app, connect_db);
+require('./routes/Users/index.js')(app, connect_db);
+require('./routes/Status/index.js')(app, connect_db);
+require('./routes/Login/index.js')(app, connect_db);
 
 // App Listen
 app.listen(3000, () => {
