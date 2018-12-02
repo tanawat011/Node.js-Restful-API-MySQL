@@ -1,4 +1,4 @@
-# Starter ONLY!!! Node.js-restful-API-With-Express
+# Starter ONLY!!! Node.js Restful API
 
 ## How to Start Project
 ```
@@ -8,5 +8,3 @@ $ npm run migrate
 // Start Project
 $ npm start
 ```
-
-# ผิดพลาดประการใดขออภัยด้วยครับ (ติชมได้นะครับน้อมรับคำติชมทั้งหมด อิอิ)
