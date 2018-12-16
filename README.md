@@ -1,4 +1,4 @@
-# Beginner ONLY!!! Node.js Restful API
+# Beginner ONLY!!! Node.js Restful API + MySQL
 
 ## How to Start Project
 ```
