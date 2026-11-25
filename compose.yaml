@@ -1,0 +1,26 @@
+# A MySQL for local development and the tests. DEV ONLY: the passwords come
+# from .env (copy .env.example) and must never be reused anywhere real.
+name: nodejs-restful-api-mysql
+
+services:
+  db:
+    image: mysql:8.4.13
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:?copy .env.example to .env}
+      MYSQL_DATABASE: ${DB_NAME:?copy .env.example to .env}
+      MYSQL_USER: ${DB_USER:?copy .env.example to .env}
+      MYSQL_PASSWORD: ${DB_PASSWORD:?copy .env.example to .env}
+    ports:
+      - "127.0.0.1:${DB_PORT:-13307}:3306" # this machine only
+    volumes:
+      - db-data:/var/lib/mysql
+      - ./docker/initdb:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -uroot -p\"$$MYSQL_ROOT_PASSWORD\" --silent"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+      start_period: 20s
+
+volumes:
+  db-data:
