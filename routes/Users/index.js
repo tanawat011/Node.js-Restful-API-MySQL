@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import { HttpError, fields, idParam, list, paging } from '../../lib/http.js';
+import { hashPassword } from '../../lib/password.js';
 
 const table = 'ir_users';
 
@@ -14,6 +15,12 @@ const spec = {
   display_name: { type: 'string' },
   email: { type: 'string' },
 };
+
+// A password is kept only as a salted scrypt hash.
+const minPassword = 8;
+function checkPassword(password) {
+  if ([...password].length < minPassword) throw new HttpError(400, `password must be at least ${minPassword} characters`);
+}
 
 export default (pool) => {
   const router = Router();
@@ -34,20 +41,26 @@ export default (pool) => {
 
   router.post('/', async (req, res) => {
     const v = fields(req.body, spec);
+    checkPassword(v.password);
     await pool.query(
       `INSERT INTO ${table} (first_name, last_name, username, password, display_name, email) VALUES (?, ?, ?, ?, ?, ?)`,
-      [v.first_name ?? null, v.last_name ?? null, v.username, v.password, v.display_name ?? null, v.email ?? null],
+      [v.first_name ?? null, v.last_name ?? null, v.username, await hashPassword(v.password), v.display_name ?? null, v.email ?? null],
     );
     res.json('Insert Data Success!');
   });
 
   router.put('/:id', async (req, res) => {
     const id = idParam(req);
-    const v = fields(req.body, spec);
-    const [result] = await pool.query(
-      `UPDATE ${table} SET first_name = ?, last_name = ?, username = ?, password = ?, display_name = ?, email = ? WHERE id = ?`,
-      [v.first_name ?? null, v.last_name ?? null, v.username, v.password, v.display_name ?? null, v.email ?? null, id],
-    );
+    // The password is optional here: left out, the old one stays.
+    const v = fields(req.body, { ...spec, password: { type: 'string' } });
+    const set = ['first_name = ?', 'last_name = ?', 'username = ?', 'display_name = ?', 'email = ?'];
+    const params = [v.first_name ?? null, v.last_name ?? null, v.username, v.display_name ?? null, v.email ?? null];
+    if (v.password) {
+      checkPassword(v.password);
+      set.push('password = ?');
+      params.push(await hashPassword(v.password));
+    }
+    const [result] = await pool.query(`UPDATE ${table} SET ${set.join(', ')} WHERE id = ?`, [...params, id]);
     if (result.affectedRows === 0) throw new HttpError(404, `No user with id ${id}`);
     res.json(`Update Data ID ${id} Success!`);
   });

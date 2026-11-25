@@ -6,6 +6,7 @@
 // The 2018 version dropped the whole database on every run.
 import { pathToFileURL } from 'node:url';
 import mysql from 'mysql2/promise';
+import { hashPassword } from '../lib/password.js';
 
 const ID = 'id INT NOT NULL PRIMARY KEY AUTO_INCREMENT';
 const dated = 'created_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP, updated_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP';
@@ -54,7 +55,7 @@ export async function migrate(conn, { fresh = false, adminPassword, log = consol
     if (rows.length === 0) {
       await conn.query(
         'INSERT INTO ir_users (id, first_name, last_name, username, password, display_name, email) VALUES (1, ?, ?, ?, ?, ?, ?)',
-        ['Super', 'Admin', 'superadmin', adminPassword, 'Super Admin', 'super@admin.example'],
+        ['Super', 'Admin', 'superadmin', await hashPassword(adminPassword), 'Super Admin', 'super@admin.example'],
       );
       log('User superadmin => inserted');
     }
