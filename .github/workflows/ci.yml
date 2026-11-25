@@ -46,4 +46,6 @@ jobs:
         run: |
           set -o pipefail
           npm test 2>&1 | tee test.log
+          # a skipped suite prints its reason; a skipped test raises the count
+          ! grep -q 'set TEST_DB_NAME' test.log
           grep -qE '(ℹ|#) skipped 0$' test.log
