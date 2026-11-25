@@ -1,40 +1,15 @@
-const connect_db = require('./connect_db')
-const express = require('express')
-const app = express()
-const bodyParser = require('body-parser')
+import { createApp } from './app.js';
+import { createPool } from './connect_db.js';
 
-// Add headers
-app.use(function (req, res, next) {
+const pool = createPool();
+const app = createApp(pool, { corsOrigin: process.env.CORS_ORIGIN || 'http://localhost:4200' });
 
-  // Website you wish to allow to connect
-  res.setHeader('Access-Control-Allow-Origin', 'http://localhost:4200');
-
-  // Request methods you wish to allow
-  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS, PUT, PATCH, DELETE');
-
-  // Request headers you wish to allow
-  res.setHeader('Access-Control-Allow-Headers', 'X-Requested-With,content-type');
-
-  // Set to true if you need the website to include cookies in the requests sent
-  // to the API (e.g. in case you use sessions)
-  res.setHeader('Access-Control-Allow-Credentials', true);
-
-  // Pass to next layer of middleware
-  next();
+const port = Number(process.env.PORT || 3000);
+const host = process.env.HOST || '127.0.0.1';
+const server = app.listen(port, host, () => {
+  console.log(`Start server at http://${host}:${port}`);
 });
 
-app.use(bodyParser.json())
-app.use(bodyParser.urlencoded({ extended: true }))
-
-// Routes
-require('./routes/Accessories/index.js')(app, connect_db);
-require('./routes/Informs/index.js')(app, connect_db);
-require('./routes/Issues/index.js')(app, connect_db);
-require('./routes/Users/index.js')(app, connect_db);
-require('./routes/Status/index.js')(app, connect_db);
-require('./routes/Login/index.js')(app, connect_db);
-
-// App Listen
-app.listen(3000, () => {
-  console.log('Start server at port 3000.')
-})
+for (const signal of ['SIGINT', 'SIGTERM']) {
+  process.on(signal, () => server.close(() => pool.end()));
+}

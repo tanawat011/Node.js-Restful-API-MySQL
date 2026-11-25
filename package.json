@@ -1,21 +1,24 @@
 {
   "name": "irs",
-  "version": "2.0.0",
-  "description": "Inform Repair System",
-  "main": "index.js",
+  "version": "3.0.0",
+  "description": "Inform Repair System: a REST API on Node.js and MySQL",
+  "type": "module",
+  "main": "server.js",
+  "engines": {
+    "node": ">=24"
+  },
   "scripts": {
-    "migrate": "node migrate/db.js",
-    "start": "node server.js",
-    "test": "test"
+    "migrate": "node --env-file-if-exists=.env migrate/db.js",
+    "start": "node --env-file-if-exists=.env server.js",
+    "test": "node --env-file-if-exists=.env --test"
   },
   "keywords": [
     "irs"
   ],
   "author": "Tanawat_DEVz",
-  "license": "ISC",
+  "license": "MIT",
   "dependencies": {
-    "body-parser": "^1.18.3",
-    "express": "^4.16.4",
-    "mysql": "^2.16.0"
+    "express": "^5.3.0",
+    "mysql2": "^3.24.6"
   }
 }

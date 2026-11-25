@@ -1,15 +1,22 @@
-const table = 'users';
-module.exports = (app, connect_db) => {
-  app.get(`/login`, (req, res) => {
-    let username = req.query.username;
-    let password = req.query.password;
-    connect_db.query(`SELECT * FROM ir_${table} WHERE username = '${username}' AND password = '${password}' LIMIT 1`, (err, rows) => {
-      if (err == null) {
-        if (rows.length == 0) res.json({ data: 'ไม่มีผู้ใช้นี้ในระบบ', is_error: true });
-        if (rows.length > 0) res.json({ data: rows, is_error: false });
-      } else {
-        throw err;
-      }
-    });
+import { Router } from 'express';
+import { publicColumns } from '../Users/index.js';
+
+export default (pool) => {
+  const router = Router();
+
+  router.get('/', async (req, res) => {
+    const { username, password } = req.query;
+    if (typeof username !== 'string' || typeof password !== 'string') {
+      res.json({ data: 'ไม่มีผู้ใช้นี้ในระบบ', is_error: true });
+      return;
+    }
+    const [rows] = await pool.query(
+      `SELECT ${publicColumns} FROM ir_users WHERE username = ? AND password = ? LIMIT 1`,
+      [username, password],
+    );
+    if (rows.length === 0) res.json({ data: 'ไม่มีผู้ใช้นี้ในระบบ', is_error: true });
+    else res.json({ data: rows, is_error: false });
   });
-}
+
+  return router;
+};

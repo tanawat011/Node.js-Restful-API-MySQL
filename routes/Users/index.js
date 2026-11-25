@@ -1,60 +1,63 @@
-const table = 'users';
-module.exports = (app, connect_db) => {
-  app.get(`/${table}`, (req, res) => {
-    const limit = req.query.take != 'null' ? `LIMIT ${req.query.take}` : '';
-    const offset = req.query.skip != 'null' ? `OFFSET ${req.query.skip}` : '';
-    const sql = `SELECT *, CONCAT(first_name , ' ', last_name) AS fullname FROM ir_${table} WHERE id != 1 ${limit} ${offset}`;
-    connect_db.query(sql, (err, rows) => {
-      if (err) throw err;
-      if (limit && limit != '') {
-        connect_db.query(`SELECT * FROM ir_${table}`, (err, rowsLength) => {
-          if (err) throw err;
-          res.json({ data: rows, total: rowsLength.length });
-        });
-      } else {
-        res.json(rows);
-      }
-    });
+import { Router } from 'express';
+import { HttpError, fields, idParam, list, paging } from '../../lib/http.js';
+
+const table = 'ir_users';
+
+// Every column but the password.
+export const publicColumns = 'id, first_name, last_name, username, display_name, email, created_date, updated_date';
+
+const spec = {
+  first_name: { type: 'string' },
+  last_name: { type: 'string' },
+  username: { type: 'string', required: true },
+  password: { type: 'string', required: true },
+  display_name: { type: 'string' },
+  email: { type: 'string' },
+};
+
+export default (pool) => {
+  const router = Router();
+
+  // User 1 is the seeded administrator; the list leaves it out.
+  router.get('/', async (req, res) => {
+    res.json(await list(pool, {
+      select: `${publicColumns}, CONCAT(first_name, ' ', last_name) AS fullname`,
+      from: table,
+      where: 'WHERE id != 1',
+    }, paging(req.query)));
   });
 
-  app.get(`/${table}/:id`, (req, res) => {
-    connect_db.query(`SELECT * FROM ir_${table} WHERE id = ${req.params.id}`, (err, rows) => {
-      if (err) throw err;
-      res.json(rows)
-    });
-  })
+  router.get('/:id', async (req, res) => {
+    const [rows] = await pool.query(`SELECT ${publicColumns} FROM ${table} WHERE id = ?`, [idParam(req)]);
+    res.json(rows);
+  });
 
-  app.post(`/${table}`, (req, res) => {
-    const field = `first_name, last_name, username, password, display_name, email`;
-    const value = `
-      '${req.body.first_name}', '${req.body.last_name}', '${req.body.username}', '${req.body.password}', '${req.body.display_name}', '${req.body.email}'
-    `;
-    const sql = `INSERT INTO ir_${table} (${field}) VALUES (${value.replace(/\s/g, '')})`;
-    connect_db.query(sql, (err, rows) => {
-      if (err) throw err;
-      res.json('Insert Data Success!')
-    });
-  })
+  router.post('/', async (req, res) => {
+    const v = fields(req.body, spec);
+    await pool.query(
+      `INSERT INTO ${table} (first_name, last_name, username, password, display_name, email) VALUES (?, ?, ?, ?, ?, ?)`,
+      [v.first_name ?? null, v.last_name ?? null, v.username, v.password, v.display_name ?? null, v.email ?? null],
+    );
+    res.json('Insert Data Success!');
+  });
 
-  app.put(`/${table}/:id`, (req, res) => {
-    const first_name = `first_name = '${req.body.first_name}'`;
-    const last_name = `last_name = '${req.body.last_name}'`;
-    const username = `username = '${req.body.username}'`;
-    const password = `password = '${req.body.password}'`;
-    const display_name = `display_name = '${req.body.display_name}'`;
-    const email = `email = '${req.body.email}'`;
+  router.put('/:id', async (req, res) => {
+    const id = idParam(req);
+    const v = fields(req.body, spec);
+    const [result] = await pool.query(
+      `UPDATE ${table} SET first_name = ?, last_name = ?, username = ?, password = ?, display_name = ?, email = ? WHERE id = ?`,
+      [v.first_name ?? null, v.last_name ?? null, v.username, v.password, v.display_name ?? null, v.email ?? null, id],
+    );
+    if (result.affectedRows === 0) throw new HttpError(404, `No user with id ${id}`);
+    res.json(`Update Data ID ${id} Success!`);
+  });
 
-    let value = `${first_name}, ${last_name}, ${username}, ${password}, ${display_name}, ${email}`;
-    connect_db.query(`UPDATE ir_${table} SET ${value} WHERE id = ${req.params.id}`, (err, rows) => {
-      if (err) throw err;
-      res.json(`Update Data ID ${req.params.id} Success!`)
-    });
-  })
+  router.delete('/:id', async (req, res) => {
+    const id = idParam(req);
+    const [result] = await pool.query(`DELETE FROM ${table} WHERE id = ?`, [id]);
+    if (result.affectedRows === 0) throw new HttpError(404, `No user with id ${id}`);
+    res.json(`Delete Data ID ${id} Success!`);
+  });
 
-  app.delete(`/${table}/:id`, (req, res) => {
-    connect_db.query(`DELETE FROM ir_${table} WHERE id = ${req.params.id}`, (err, rows) => {
-      if (err) throw err;
-      res.json(`Delete Data ID ${req.params.id} Success!`)
-    });
-  })
-}
+  return router;
+};
