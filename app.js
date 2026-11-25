@@ -1,4 +1,5 @@
 import express from 'express';
+import { requireAuth } from './lib/auth.js';
 import accessories from './routes/Accessories/index.js';
 import informs from './routes/Informs/index.js';
 import issues from './routes/Issues/index.js';
@@ -7,8 +8,9 @@ import status from './routes/Status/index.js';
 import login from './routes/Login/index.js';
 
 // createApp builds the API on a mysql2 pool. corsOrigin is the web app
-// allowed to call it from a browser (the Angular client ran on :4200).
-export function createApp(pool, { corsOrigin = 'http://localhost:4200' } = {}) {
+// allowed to call it from a browser (the Angular client ran on :4200);
+// sessionHours and loginLimit go to the sign-in routes.
+export function createApp(pool, { corsOrigin = 'http://localhost:4200', sessionHours = 8, loginLimit } = {}) {
   const app = express();
   app.disable('x-powered-by');
 
@@ -16,19 +18,22 @@ export function createApp(pool, { corsOrigin = 'http://localhost:4200' } = {}) {
     res.setHeader('Access-Control-Allow-Origin', corsOrigin);
     res.setHeader('Vary', 'Origin');
     res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS, PUT, PATCH, DELETE');
-    res.setHeader('Access-Control-Allow-Headers', 'X-Requested-With,content-type');
+    res.setHeader('Access-Control-Allow-Headers', 'X-Requested-With,content-type,authorization');
     res.setHeader('Access-Control-Allow-Credentials', 'true');
     if (req.method === 'OPTIONS') return res.sendStatus(204);
     next();
   });
   app.use(express.json({ limit: '100kb' }));
 
+  // /login is the only way in; everything after requireAuth needs a session.
+  app.use(login(pool, { hours: sessionHours, loginLimit }));
+  app.use(requireAuth(pool));
+
   app.use('/accessories', accessories(pool));
   app.use('/informs', informs(pool));
   app.use('/issues', issues(pool));
   app.use('/users', users(pool));
   app.use('/status', status(pool));
-  app.use('/login', login(pool));
 
   app.use((req, res) => res.status(404).json({ error: 'Not found' }));
 

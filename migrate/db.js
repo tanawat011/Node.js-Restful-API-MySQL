@@ -15,7 +15,9 @@ const int = 'INT NOT NULL';
 const character = 'CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci';
 
 export const tables = [
-  { table: 'ir_users', field: `${ID}, first_name ${vc}, last_name ${vc}, username ${vc} NOT NULL UNIQUE, password ${vc} NOT NULL, display_name ${vc}, email ${vc}, ${dated}` },
+  { table: 'ir_users', field: `${ID}, first_name ${vc}, last_name ${vc}, username ${vc} NOT NULL UNIQUE, password ${vc} NOT NULL, display_name ${vc}, email ${vc}, role ENUM('admin', 'staff') NOT NULL DEFAULT 'staff', ${dated}` },
+  // Sign-in sessions: the SHA-256 of each token, never the token.
+  { table: 'ir_sessions', field: `id CHAR(64) NOT NULL PRIMARY KEY, user_id ${int}, expires_at DATETIME NOT NULL, created_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP, INDEX (user_id), INDEX (expires_at), FOREIGN KEY (user_id) REFERENCES ir_users (id) ON DELETE CASCADE` },
   { table: 'ir_accessories', field: `${ID}, name ${vc}, ${dated}` },
   { table: 'ir_issues', field: `${ID}, name ${vc}, ${dated}` },
   { table: 'ir_informs', field: `${ID}, user_id ${int}, user_id_operator INT NULL, datetime_inform DATETIME, datetime_operator DATETIME, datetime_success DATETIME, customer_name ${vc}, customer_tel ${vc}, accessories_id ${int}, accessories_serial_number ${vc}, price ${vc}, issue_id ${int}, cause_solution TEXT, detail TEXT, status_id INT NULL, ${dated}` },
@@ -31,7 +33,7 @@ const statuses = [
 // migrate runs on a connection already using the target database.
 export async function migrate(conn, { fresh = false, adminPassword, log = console.log } = {}) {
   if (fresh) {
-    for (const { table } of tables) {
+    for (const { table } of [...tables].reverse()) { // ir_sessions before ir_users
       await conn.query(`DROP TABLE IF EXISTS ${table}`);
       log(`Table ${table} => dropped`);
     }
@@ -39,6 +41,16 @@ export async function migrate(conn, { fresh = false, adminPassword, log = consol
   for (const { table, field } of tables) {
     await conn.query(`CREATE TABLE IF NOT EXISTS ${table} (${field}) ${character}`);
     log(`Table ${table} => ready`);
+  }
+
+  // Tables made before roles existed get the column.
+  const [[{ hasRole }]] = await conn.query(
+    "SELECT COUNT(*) AS hasRole FROM information_schema.columns WHERE table_schema = DATABASE() AND table_name = 'ir_users' AND column_name = 'role'",
+  );
+  if (hasRole === 0) {
+    await conn.query("ALTER TABLE ir_users ADD COLUMN role ENUM('admin', 'staff') NOT NULL DEFAULT 'staff' AFTER email");
+    await conn.query("UPDATE ir_users SET role = 'admin' WHERE username = 'superadmin'");
+    log('Column ir_users.role => added');
   }
 
   const [[{ n }]] = await conn.query('SELECT COUNT(*) AS n FROM ir_status');
@@ -54,7 +66,7 @@ export async function migrate(conn, { fresh = false, adminPassword, log = consol
     const [rows] = await conn.query('SELECT id FROM ir_users WHERE username = ?', ['superadmin']);
     if (rows.length === 0) {
       await conn.query(
-        'INSERT INTO ir_users (id, first_name, last_name, username, password, display_name, email) VALUES (1, ?, ?, ?, ?, ?, ?)',
+        "INSERT INTO ir_users (id, first_name, last_name, username, password, display_name, email, role) VALUES (1, ?, ?, ?, ?, ?, ?, 'admin')",
         ['Super', 'Admin', 'superadmin', await hashPassword(adminPassword), 'Super Admin', 'super@admin.example'],
       );
       log('User superadmin => inserted');
